@@ -20,7 +20,7 @@ function convertHtml2JsonAndSet() {
   Element:
   {
     type: "element",
-    tag: string,          // lowercased
+    tag: string,          
     attributes: { [name: string]: string },
     children: Node[]
   }
@@ -28,13 +28,13 @@ function convertHtml2JsonAndSet() {
   Text:
   {
     type: "text",
-    content: string           // entities decoded in normal elements
+    content: string           
   }
 
   Comment:
   {
     type: "comment",
-    content: string           // raw, entities not decoded
+    content: string          
   }
 
   Doctype:
@@ -46,7 +46,7 @@ function convertHtml2JsonAndSet() {
   Warning (malformed HTML recovery):
   {
     message: string,
-    position: number          // character index in input string
+    line: number         
   }
 
   Policies:
@@ -136,6 +136,58 @@ const VOID_TAGS = [
   "track",
   "wbr",
 ];
+
+/* Warning model and line resolver utilities */
+function createWarning(message, line) {
+  return {
+    message,
+    line,
+  };
+}
+
+function createWarningCollection() {
+  return [];
+}
+
+function buildLineStartIndexes(text) {
+  const lineStartIndexes = [0];
+
+  for (let i = 0; i < text.length; i += 1) {
+    if (text[i] === "\n") {
+      lineStartIndexes.push(i + 1);
+    }
+  }
+
+  return lineStartIndexes;
+}
+
+function resolveLineNumber(lineStartIndexes, index) {
+  if (lineStartIndexes.length === 0) {
+    return 1;
+  }
+
+  const boundedIndex = Math.max(0, index);
+  let low = 0;
+  let high = lineStartIndexes.length - 1;
+  let found = 0;
+
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    if (lineStartIndexes[middle] <= boundedIndex) {
+      found = middle;
+      low = middle + 1;
+    } else {
+      high = middle - 1;
+    }
+  }
+
+  return found + 1;
+}
+
+function createLineResolver(text) {
+  const lineStartIndexes = buildLineStartIndexes(text);
+  return (index) => resolveLineNumber(lineStartIndexes, index);
+}
 
 /* Node builders and tree write helpers */
 function appendToCurrentParent(stack, node) {
