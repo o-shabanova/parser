@@ -125,7 +125,14 @@ function parseHtml(htmlText) {
 
     if (openingTagMatch) {
       const tag = openingTagMatch[1].toLowerCase();
-      const attributesText = openingTagMatch[2] || "";
+      const rawAttributesText = openingTagMatch[2] || "";
+
+      const isSelfClosing =
+        part.endsWith("/>") ||
+        voidTags.includes(tag);
+      const attributesText = isSelfClosing
+        ? rawAttributesText.replace(/\s*\/\s*$/, "")
+        : rawAttributesText;
 
       const element = {
         type: "element",
@@ -135,7 +142,7 @@ function parseHtml(htmlText) {
       };
 
       stack[stack.length - 1].children.push(element);
-      if (!voidTags.includes(tag)) {
+      if (!isSelfClosing) {
         stack.push(element);
       }
 
