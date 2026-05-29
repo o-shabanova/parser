@@ -20,7 +20,7 @@ function convertHtml2JsonAndSet() {
   Element:
   {
     type: "element",
-    tagName: string,          // lowercased
+    tag: string,          // lowercased
     attributes: { [name: string]: string },
     children: Node[]
   }
@@ -106,12 +106,22 @@ function parseHtml(htmlText) {
   const stack = [root];
 
   const parts = htmlText
-    .split(/(<\/?[a-zA-Z][\w-]*(?:\s+[^<>]*)?>)/)
+  .split(/(<!--[\s\S]*?-->|<\/?[a-zA-Z][\w-]*(?:\s+[^<>]*)?>)/)
     .filter((part) => part !== "");
 
   parts.forEach((part) => {
+    const commentMatch = part.match(/^<!--([\s\S]*?)-->$/);
     const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)(?:\s+([^<>]*))?>$/);
     const closingTagMatch = part.match(/^<\/([a-zA-Z][\w-]*)>$/);
+
+    if (commentMatch) {
+      stack[stack.length - 1].children.push({
+        type: "comment",
+        content: commentMatch[1],
+      });
+
+      return;
+    }
 
     if (closingTagMatch) {
       const tag = closingTagMatch[1].toLowerCase();

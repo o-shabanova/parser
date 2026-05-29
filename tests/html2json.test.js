@@ -348,3 +348,36 @@ test("returns self-closing element with attributes and no slash artifact", () =>
         ],
     });
 });
+
+test("parses html comment node inside parent", () => {
+    const result = html2json("<div><!-- comment --><p>Hi</p></div>");
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+          {
+            type: "element",
+            tag: "div",
+            attributes: {},
+            children: [
+              {
+                type: "comment",
+                content: " comment ",
+              },
+              {
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                  {
+                    type: "text",
+                    content: "Hi",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    
