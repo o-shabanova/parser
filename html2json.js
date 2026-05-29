@@ -81,6 +81,23 @@ function parseAttributes(attributesText) {
 }
 
 function parseHtml(htmlText) {
+  const voidTags = [
+    "area",
+    "base",
+    "br",
+    "col",
+    "embed",
+    "hr",
+    "img",
+    "input",
+    "link",
+    "meta",
+    "param",
+    "source",
+    "track",
+    "wbr",
+  ];
+
   const root = {
     type: "document",
     children: [],
@@ -118,7 +135,9 @@ function parseHtml(htmlText) {
       };
 
       stack[stack.length - 1].children.push(element);
-      stack.push(element);
+      if (!voidTags.includes(tag)) {
+        stack.push(element);
+      }
 
       return;
     }

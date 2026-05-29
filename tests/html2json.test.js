@@ -220,3 +220,58 @@ test("returns element with boolean attributes", () => {
         ],
     });
 });
+
+test("returns void element without closing tag", () => {
+    const result = html2json('<img src="photo.jpg" alt="Profile photo">');
+  
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "img",
+          attributes: {
+            src: "photo.jpg",
+            alt: "Profile photo",
+          },
+          children: [],
+        },
+      ],
+    });
+  });
+
+test("returns void element and following sibling inside parent", () => {
+    const result = html2json('<div><img src="photo.jpg"><p>After</p></div>');
+  
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "div",
+          attributes: {},
+          children: [
+            {
+              type: "element",
+              tag: "img",
+              attributes: {
+                src: "photo.jpg",
+              },
+              children: [],
+            },
+            {
+              type: "element",
+              tag: "p",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "After",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
