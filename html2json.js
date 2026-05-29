@@ -119,6 +119,80 @@ function parseAttributes(attributesText) {
   return attributes;
 }
 
+/* Parser constants */
+const VOID_TAGS = [
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+];
+
+/* Node builders and tree write helpers */
+function appendToCurrentParent(stack, node) {
+  stack[stack.length - 1].children.push(node);
+}
+
+function createTextNode(content) {
+  return {
+    type: "text",
+    content: decodeHtmlEntities(content),
+  };
+}
+
+function createElementNode(tag, attributesText) {
+  return {
+    type: "element",
+    tag,
+    attributes: parseAttributes(attributesText),
+    children: [],
+  };
+}
+
+function flushTextBuffer(stack, textBuffer) {
+  if (textBuffer !== "") {
+    appendToCurrentParent(stack, createTextNode(textBuffer));
+  }
+
+  return "";
+}
+
+function createRawTextNode(tag, content) {
+  if (tag === "script" || tag === "style") {
+    return {
+      type: "text",
+      content,
+    };
+  }
+
+  return createTextNode(content);
+}
+
+function createRawElementNode(rawElementMatch) {
+  const rawElement = createElementNode(
+    rawElementMatch.tag,
+    rawElementMatch.attributesText
+  );
+
+  if (rawElementMatch.content !== "") {
+    rawElement.children.push(
+      createRawTextNode(rawElementMatch.tag, rawElementMatch.content)
+    );
+  }
+
+  return rawElement;
+}
+
+/* Token readers */
 function findRawClosingTag(htmlText, startIndex, tag) {
   const lowerTag = tag.toLowerCase();
   let quote = "";
@@ -200,23 +274,177 @@ function tryReadRawElement(htmlText, startIndex) {
   };
 }
 
+function tryReadComment(htmlText, startIndex) {
+  if (!htmlText.startsWith("<!--", startIndex)) {
+    return null;
+  }
+
+  const commentEndIndex = htmlText.indexOf("-->", startIndex + 4);
+  if (commentEndIndex === -1) {
+    return null;
+  }
+
+  return {
+    content: htmlText.slice(startIndex + 4, commentEndIndex),
+    endIndex: commentEndIndex + 3,
+  };
+}
+
+function tryReadDoctype(htmlText, startIndex) {
+  const doctypeMatch = htmlText.slice(startIndex).match(/^<!DOCTYPE\s+([^>]+)>/i);
+  if (!doctypeMatch) {
+    return null;
+  }
+
+  return {
+    content: doctypeMatch[1].trim(),
+    endIndex: startIndex + doctypeMatch[0].length,
+  };
+}
+
+function tryReadClosingTag(htmlText, startIndex) {
+  const closingTagMatch = htmlText
+    .slice(startIndex)
+    .match(/^<\/([a-zA-Z][\w-]*)\s*>/);
+  if (!closingTagMatch) {
+    return null;
+  }
+
+  return {
+    tag: closingTagMatch[1].toLowerCase(),
+    endIndex: startIndex + closingTagMatch[0].length,
+  };
+}
+
+function tryReadOpeningTag(htmlText, startIndex) {
+  const openingTagMatch = htmlText
+    .slice(startIndex)
+    .match(/^<([a-zA-Z][\w-]*)(?:\s+((?:"[^"]*"|'[^']*'|[^'"<>])*))?\s*\/?>/);
+  if (!openingTagMatch) {
+    return null;
+  }
+
+  const tag = openingTagMatch[1].toLowerCase();
+  const rawAttributesText = openingTagMatch[2] || "";
+  const fullOpeningTag = openingTagMatch[0];
+  const isSelfClosing = fullOpeningTag.endsWith("/>") || VOID_TAGS.includes(tag);
+  const attributesText = isSelfClosing
+    ? rawAttributesText.replace(/\s*\/\s*$/, "")
+    : rawAttributesText;
+
+  return {
+    tag,
+    attributesText,
+    isSelfClosing,
+    endIndex: startIndex + fullOpeningTag.length,
+  };
+}
+
+/* Token composition */
+function consumeNextToken(htmlText, startIndex) {
+  const rawElementToken = tryReadRawElement(htmlText, startIndex);
+  if (rawElementToken) {
+    return {
+      kind: "rawElement",
+      endIndex: rawElementToken.endIndex,
+      value: rawElementToken,
+    };
+  }
+
+  const commentToken = tryReadComment(htmlText, startIndex);
+  if (commentToken) {
+    return {
+      kind: "comment",
+      endIndex: commentToken.endIndex,
+      value: commentToken,
+    };
+  }
+
+  const doctypeToken = tryReadDoctype(htmlText, startIndex);
+  if (doctypeToken) {
+    return {
+      kind: "doctype",
+      endIndex: doctypeToken.endIndex,
+      value: doctypeToken,
+    };
+  }
+
+  const closingTagToken = tryReadClosingTag(htmlText, startIndex);
+  if (closingTagToken) {
+    return {
+      kind: "closingTag",
+      endIndex: closingTagToken.endIndex,
+      value: closingTagToken,
+    };
+  }
+
+  const openingTagToken = tryReadOpeningTag(htmlText, startIndex);
+  if (openingTagToken) {
+    return {
+      kind: "openingTag",
+      endIndex: openingTagToken.endIndex,
+      value: openingTagToken,
+    };
+  }
+
+  return null;
+}
+
+/* Parser flow helpers */
+function closeTagWithRecovery(stack, tag) {
+  let foundTagIndex = -1;
+  for (let i = stack.length - 1; i > 0; i -= 1) {
+    if (stack[i].tag === tag) {
+      foundTagIndex = i;
+      break;
+    }
+  }
+
+  if (foundTagIndex !== -1) {
+    while (stack.length - 1 >= foundTagIndex) {
+      stack.pop();
+    }
+  }
+}
+
+function applyToken(stack, token) {
+  if (token.kind === "rawElement") {
+    appendToCurrentParent(stack, createRawElementNode(token.value));
+    return;
+  }
+
+  if (token.kind === "comment") {
+    appendToCurrentParent(stack, {
+      type: "comment",
+      content: token.value.content,
+    });
+    return;
+  }
+
+  if (token.kind === "doctype") {
+    appendToCurrentParent(stack, {
+      type: "doctype",
+      content: token.value.content,
+    });
+    return;
+  }
+
+  if (token.kind === "closingTag") {
+    closeTagWithRecovery(stack, token.value.tag);
+    return;
+  }
+
+  if (token.kind === "openingTag") {
+    const element = createElementNode(token.value.tag, token.value.attributesText);
+    appendToCurrentParent(stack, element);
+
+    if (!token.value.isSelfClosing) {
+      stack.push(element);
+    }
+  }
+}
+
 function parseHtml(htmlText) {
-  const voidTags = [
-    "area",
-    "base",
-    "br",
-    "col",
-    "embed",
-    "hr",
-    "img",
-    "input",
-    "link",
-    "meta",
-    "param",
-    "source",
-    "track",
-    "wbr",
-  ];
   const root = {
     type: "document",
     children: [],
@@ -225,17 +453,6 @@ function parseHtml(htmlText) {
   let index = 0;
   let textBuffer = "";
 
-  const flushTextBuffer = () => {
-    if (textBuffer !== "") {
-      stack[stack.length - 1].children.push({
-        type: "text",
-        content: decodeHtmlEntities(textBuffer),
-      });
-    }
-
-    textBuffer = "";
-  };
-
   while (index < htmlText.length) {
     if (htmlText[index] !== "<") {
       textBuffer += htmlText[index];
@@ -243,110 +460,11 @@ function parseHtml(htmlText) {
       continue;
     }
 
-    const rawElementMatch = tryReadRawElement(htmlText, index);
-    if (rawElementMatch) {
-      flushTextBuffer();
-
-      const rawElement = {
-        type: "element",
-        tag: rawElementMatch.tag,
-        attributes: parseAttributes(rawElementMatch.attributesText),
-        children: [],
-      };
-
-      if (rawElementMatch.content !== "") {
-        rawElement.children.push({
-          type: "text",
-          content:
-            rawElementMatch.tag === "script" || rawElementMatch.tag === "style"
-              ? rawElementMatch.content
-              : decodeHtmlEntities(rawElementMatch.content),
-        });
-      }
-
-      stack[stack.length - 1].children.push(rawElement);
-      index = rawElementMatch.endIndex;
-      continue;
-    }
-    if (htmlText.startsWith("<!--", index)) {
-      const commentEndIndex = htmlText.indexOf("-->", index + 4);
-
-      if (commentEndIndex !== -1) {
-        flushTextBuffer();
-        stack[stack.length - 1].children.push({
-          type: "comment",
-          content: htmlText.slice(index + 4, commentEndIndex),
-        });
-        index = commentEndIndex + 3;
-        continue;
-      }
-    }
-
-    const doctypeMatch = htmlText.slice(index).match(/^<!DOCTYPE\s+([^>]+)>/i);
-    if (doctypeMatch) {
-      flushTextBuffer();
-      stack[stack.length - 1].children.push({
-        type: "doctype",
-        content: doctypeMatch[1].trim(),
-      });
-      index += doctypeMatch[0].length;
-      continue;
-    }
-
-    const closingTagMatch = htmlText.slice(index).match(/^<\/([a-zA-Z][\w-]*)\s*>/);
-    if (closingTagMatch) {
-      flushTextBuffer();
-      const tag = closingTagMatch[1].toLowerCase();
-
-      /*
-        Recovery rule for mismatched closing tags:
-        pop open elements until the matching tag is found, then pop it too.
-        If no matching tag exists in stack, ignore the closing tag.
-      */
-      let foundTagIndex = -1;
-      for (let i = stack.length - 1; i > 0; i -= 1) {
-        if (stack[i].tag === tag) {
-          foundTagIndex = i;
-          break;
-        }
-      }
-
-      if (foundTagIndex !== -1) {
-        while (stack.length - 1 >= foundTagIndex) {
-          stack.pop();
-        }
-      }
-
-      index += closingTagMatch[0].length;
-      continue;
-    }
-    const openingTagMatch = htmlText
-      .slice(index)
-      .match(/^<([a-zA-Z][\w-]*)(?:\s+((?:"[^"]*"|'[^']*'|[^'"<>])*))?\s*\/?>/);
-    if (openingTagMatch) {
-      flushTextBuffer();
-      const tag = openingTagMatch[1].toLowerCase();
-      const rawAttributesText = openingTagMatch[2] || "";
-      const fullOpeningTag = openingTagMatch[0];
-      const isSelfClosing = fullOpeningTag.endsWith("/>") || voidTags.includes(tag);
-      const attributesText = isSelfClosing
-        ? rawAttributesText.replace(/\s*\/\s*$/, "")
-        : rawAttributesText;
-
-      const element = {
-        type: "element",
-        tag,
-        attributes: parseAttributes(attributesText),
-        children: [],
-      };
-
-      stack[stack.length - 1].children.push(element);
-
-      if (!isSelfClosing) {
-        stack.push(element);
-      }
-
-      index += fullOpeningTag.length;
+    const token = consumeNextToken(htmlText, index);
+    if (token) {
+      textBuffer = flushTextBuffer(stack, textBuffer);
+      applyToken(stack, token);
+      index = token.endIndex;
       continue;
     }
 
@@ -354,7 +472,7 @@ function parseHtml(htmlText) {
     index += 1;
   }
 
-  flushTextBuffer();
+  textBuffer = flushTextBuffer(stack, textBuffer);
 
   return root;
 }
@@ -368,6 +486,7 @@ function html2json(htmlText) {
   }
 
   const trimmedHtml = htmlText.trim();
+
   if (trimmedHtml === "") {
     return {
       type: "document",
