@@ -32,3 +32,10 @@ Before submitting your final results, double or even triple-check everything:
 - Jito’s senior developer will thoroughly review your solution. Based on this review, if deemed appropriate, you may be invited for a technical code review. This will include questions about the code, your understanding, and the reasoning behind your solution choices.
 - The best indicator that you’ve done your best is the feeling of confidence when submitting, knowing that you have thoroughly checked your work and cannot think of anything more to improve.
 - You can view test task template [here](https://jito-dev.github.io/jito-intern-test-task/)
+
+## Implementation contract
+html2json(htmlText) is a hand-written, character-by-character parser (no DOM APIs) that always returns a JSON AST rooted at { type: "document", children, warnings }. The tree uses four node kinds: element (with lowercase tag, attributes, and children), text, comment, and doctype. Malformed HTML is recovered best-effort: the function never throws, and structural problems are reported in warnings with 1-based openedAt / detectedAt line numbers.
+
+Text nodes preserve whitespace as written and normalize line endings (\r\n and \r → \n). HTML entities are decoded in text and attribute values (semicolon required), but stay literal inside script, style, comments, and doctype. Content inside script, style, textarea, and title is treated as raw text (with quote-aware closing-tag detection for script/style). Void and self-closing tags are supported; unclosed or mismatched tags produce warnings and an approximate tree rather than failing.
+
+
