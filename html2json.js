@@ -106,13 +106,23 @@ function parseHtml(htmlText) {
   const stack = [root];
 
   const parts = htmlText
-  .split(/(<!--[\s\S]*?-->|<\/?[a-zA-Z][\w-]*(?:\s+[^<>]*)?>)/)
+    .split(/(<!--[\s\S]*?-->|<!DOCTYPE[\s\S]*?>|<\/?[a-zA-Z][\w-]*(?:\s+[^<>]*)?>)/i)
     .filter((part) => part !== "");
 
   parts.forEach((part) => {
+    const doctypeMatch = part.match(/^<!DOCTYPE\s+([^>]+)>$/i);
     const commentMatch = part.match(/^<!--([\s\S]*?)-->$/);
     const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)(?:\s+([^<>]*))?>$/);
     const closingTagMatch = part.match(/^<\/([a-zA-Z][\w-]*)>$/);
+
+    if (doctypeMatch) {
+      stack[stack.length - 1].children.push({
+        type: "doctype",
+        content: doctypeMatch[1].trim(),
+      });
+
+      return;
+    }
 
     if (commentMatch) {
       stack[stack.length - 1].children.push({

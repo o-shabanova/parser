@@ -354,30 +354,66 @@ test("parses html comment node inside parent", () => {
     assert.deepEqual(result, {
         type: "document",
         children: [
-          {
-            type: "element",
-            tag: "div",
-            attributes: {},
-            children: [
-              {
-                type: "comment",
-                content: " comment ",
-              },
-              {
+            {
                 type: "element",
-                tag: "p",
+                tag: "div",
                 attributes: {},
                 children: [
-                  {
-                    type: "text",
-                    content: "Hi",
-                  },
+                    {
+                        type: "comment",
+                        content: " comment ",
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "Hi",
+                            },
+                        ],
+                    },
                 ],
-              },
-            ],
-          },
+            },
         ],
-      });
     });
+});
 
-    
+test("parses doctype node before html root", () => {
+    const result = html2json("<!DOCTYPE html><html><body><p>Hi</p></body></html>");
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "doctype",
+                content: "html",
+            },
+            {
+                type: "element",
+                tag: "html",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "body",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "element",
+                                tag: "p",
+                                attributes: {},
+                                children: [
+                                    {
+                                        type: "text",
+                                        content: "Hi",
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+});
