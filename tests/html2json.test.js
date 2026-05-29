@@ -180,19 +180,43 @@ test("returns element with single quoted attributes", () => {
 
 test("returns element with unquoted attribute values", () => {
     const result = html2json("<input type=text value=hello>");
-  
+
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "input",
-          attributes: {
-            type: "text",
-            value: "hello",
-          },
-          children: [],
-        },
-      ],
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "input",
+                attributes: {
+                    type: "text",
+                    value: "hello",
+                },
+                children: [],
+            },
+        ],
     });
-  });
+});
+
+test("returns element with boolean attributes", () => {
+    const result = html2json('<button disabled type="submit">Save</button>');
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "button",
+                attributes: {
+                    disabled: true,
+                    type: "submit",
+                },
+                children: [
+                    {
+                        type: "text",
+                        content: "Save",
+                    },
+                ],
+            },
+        ],
+    });
+});

@@ -56,11 +56,23 @@ function convertHtml2JsonAndSet() {
 */
 function parseAttributes(attributesText) {
   const attributes = {};
+  const matchedAttributeNames = new Set();
 
   attributesText.replace(
     /([a-zA-Z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g,
     (match, name, doubleQuotedValue, singleQuotedValue, unquotedValue) => {
       attributes[name] = doubleQuotedValue ?? singleQuotedValue ?? unquotedValue;
+      matchedAttributeNames.add(name);
+      return match;
+    }
+  );
+
+  attributesText.replace(
+    /(?:^|\s+)([a-zA-Z_:][\w:.-]*)(?=\s|$)/g,
+    (match, name) => {
+      if (!matchedAttributeNames.has(name)) {
+        attributes[name] = true;
+      }
       return match;
     }
   );
