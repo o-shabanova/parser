@@ -1027,4 +1027,54 @@ test("decodes entities inside title content", () => {
     });
 });
 
+test("ignores whitespace-only formatting text nodes", () => {
+    const result = html2json("<div>\n  <p>x</p>\n</div>");
+
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "div",
+          attributes: {},
+          children: [
+            {
+              type: "element",
+              tag: "p",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "x",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  test("preserves leading and trailing spaces in text node", () => {
+    const result = html2json("<p>  hello  </p>");
+
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "p",
+          attributes: {},
+          children: [
+            {
+              type: "text",
+              content: "  hello  ",
+            },
+          ],
+        },
+      ],
+    });
+  });
+  
+
 

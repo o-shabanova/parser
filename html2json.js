@@ -225,17 +225,16 @@ function parseHtml(htmlText) {
   let textBuffer = "";
 
   const flushTextBuffer = () => {
-    const textContent = textBuffer.trim();
-
-    if (textContent) {
+    if (textBuffer.trim() !== "") {
       stack[stack.length - 1].children.push({
         type: "text",
-        content: decodeHtmlEntities(textContent),
+        content: decodeHtmlEntities(textBuffer),
       });
     }
 
     textBuffer = "";
   };
+  
   while (index < htmlText.length) {
     if (htmlText[index] !== "<") {
       textBuffer += htmlText[index];
