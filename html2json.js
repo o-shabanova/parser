@@ -54,6 +54,20 @@ function convertHtml2JsonAndSet() {
   - Malformed HTML produces a best-effort tree; never throws.
   - Entities are decoded in text nodes and attribute values, not in script, style, comments, or doctype.
 */
+function parseAttributes(attributesText) {
+  const attributes = {};
+
+  attributesText.replace(
+    /([a-zA-Z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,
+    (match, name, doubleQuotedValue, singleQuotedValue) => {
+      attributes[name] = doubleQuotedValue ?? singleQuotedValue;
+      return match;
+    }
+  );
+
+  return attributes;
+}
+
 function parseHtml(htmlText) {
   const root = {
     type: "document",
@@ -63,11 +77,11 @@ function parseHtml(htmlText) {
   const stack = [root];
 
   const parts = htmlText
-    .split(/(<\/?[a-zA-Z][\w-]*>)/)
+    .split(/(<\/?[a-zA-Z][\w-]*(?:\s+[^<>]*)?>)/)
     .filter((part) => part !== "");
 
   parts.forEach((part) => {
-    const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)>$/);
+    const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)(?:\s+([^<>]*))?>$/);
     const closingTagMatch = part.match(/^<\/([a-zA-Z][\w-]*)>$/);
 
     if (closingTagMatch) {
@@ -82,11 +96,12 @@ function parseHtml(htmlText) {
 
     if (openingTagMatch) {
       const tag = openingTagMatch[1].toLowerCase();
+      const attributesText = openingTagMatch[2] || "";
 
       const element = {
         type: "element",
         tag,
-        attributes: {},
+        attributes: parseAttributes(attributesText),
         children: [],
       };
 

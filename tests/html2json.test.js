@@ -39,93 +39,141 @@ test("returns element with text child for paired tag", () => {
     assert.deepEqual(result, {
         type: "document",
         children: [
-          {
-            type: "element",
-            tag: "div",
-            attributes: {},
-            children: [
-              {
-                type: "text",
-                content: "Hello!",
-              },
-            ],
-          },
+            {
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "Hello!",
+                    },
+                ],
+            },
         ],
-      });
+    });
 });
 
 test("returns empty document for empty string", () => {
     const result = html2json("   ");
-  
-    assert.deepEqual(result, {
-      type: "document",
-      children: [],
-    });
-  });
 
-  test("returns nested element inside div", () => {
-    const result = html2json("<div><p>Hello!</p></div>");
-  
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "div",
-          attributes: {},
-          children: [
-            {
-              type: "element",
-              tag: "p",
-              attributes: {},
-              children: [
-                {
-                  type: "text",
-                  content: "Hello!",
-                },
-              ],
-            },
-          ],
-        },
-      ],
+        type: "document",
+        children: [],
     });
-  });
+});
+
+test("returns nested element inside div", () => {
+    const result = html2json("<div><p>Hello!</p></div>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "Hello!",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+});
 
 test("returns sibling elements inside div", () => {
     const result = html2json("<div><p>One</p><p>Two</p></div>");
-  
+
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "div",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "element",
-              tag: "p",
-              attributes: {},
-              children: [
-                {
-                  type: "text",
-                  content: "One",
-                },
-              ],
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "One",
+                            },
+                        ],
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "Two",
+                            },
+                        ],
+                    },
+                ],
             },
-            {
-              type: "element",
-              tag: "p",
-              attributes: {},
-              children: [
-                {
-                  type: "text",
-                  content: "Two",
-                },
-              ],
-            },
-          ],
-        },
-      ],
+        ],
     });
-  });
+});
+
+test("returns element with attributes", () => {
+    const result = html2json('<a href="https://example.com" target="_blank">Example</a>');
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "a",
+                attributes: {
+                    href: "https://example.com",
+                    target: "_blank",
+                },
+                children: [
+                    {
+                        type: "text",
+                        content: "Example",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("returns element with single quoted attributes", () => {
+    const result = html2json("<button type='button' aria-label='Close'>X</button>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "button",
+                attributes: {
+                    type: "button",
+                    "aria-label": "Close",
+                },
+                children: [
+                    {
+                        type: "text",
+                        content: "X",
+                    },
+                ],
+            },
+        ],
+    });
+});
