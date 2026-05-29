@@ -41,7 +41,8 @@ test("returns empty document object for non-string input", () => {
         warnings: [
             {
                 message: "Input must be a string with HTML content.",
-                line: 1,
+                openedAt: 1,
+                detectedAt: 1,
             },
         ],
     });
@@ -757,7 +758,8 @@ test("builds deterministic best-effort output for malformed corpus", () => {
         warnings: [
             {
                 message: "Unclosed tag <p> was automatically closed at the end of input.",
-                line: 1,
+                openedAt: 1,
+                detectedAt: 1,
             },
         ],
     });
@@ -782,7 +784,8 @@ test("builds deterministic best-effort output for malformed corpus", () => {
         warnings: [
             {
                 message: "Tag <span> was automatically closed before </div>.",
-                line: 1,
+                openedAt: 1,
+                detectedAt: 1,
             },
         ],
     });
@@ -1221,7 +1224,8 @@ test("recovers stack by popping until matching closing tag", () => {
         warnings: [
             {
                 message: "Tag <span> was automatically closed before </div>.",
-                line: 1,
+                openedAt: 1,
+                detectedAt: 1,
             },
         ],
     });
@@ -1284,7 +1288,8 @@ test("adds warning with line for unexpected closing tag", () => {
     assert.deepEqual(result.warnings, [
         {
             message: "Unexpected closing tag </span>. No matching opening tag was found.",
-            line: 2,
+            openedAt: 1,
+            detectedAt: 2,
         },
     ]);
 });
@@ -1295,11 +1300,13 @@ test("adds warning with line for unclosed comment", () => {
     assert.deepEqual(result.warnings, [
         {
             message: "Comment is not closed. Add --> to finish the comment.",
-            line: 2,
+            openedAt: 2,
+            detectedAt: 2,
         },
         {
             message: "Unclosed tag <div> was automatically closed at the end of input.",
-            line: 1,
+            openedAt: 1,
+            detectedAt: 1,
         },
     ]);
 });

@@ -46,7 +46,8 @@ function convertHtml2JsonAndSet() {
   Warning (malformed HTML recovery):
   {
     message: string,
-    line: number         
+    openedAt: number,
+    detectedAt: number         
   }
 
   Policies:
@@ -138,10 +139,11 @@ const VOID_TAGS = [
 ];
 
 /* Warning model and line resolver utilities */
-function createWarning(message, line) {
+function createWarning(message, openedAt, detectedAt) {
   return {
     message,
-    line,
+    openedAt,
+    detectedAt,
   };
 }
 
@@ -471,6 +473,7 @@ function closeTagWithRecovery(stack, tag, tokenLine, warnings) {
     warnings.push(
       createWarning(
         `Unexpected closing tag </${tag}>. No matching opening tag was found.`,
+        getOpenLine(stack[stack.length - 1]),
         tokenLine
       )
     );
@@ -481,6 +484,7 @@ function closeTagWithRecovery(stack, tag, tokenLine, warnings) {
     warnings.push(
       createWarning(
         `Tag <${stack[i].tag}> was automatically closed before </${tag}>.`,
+        getOpenLine(stack[i]),
         tokenLine
       )
     );
@@ -557,19 +561,23 @@ function parseHtml(htmlText) {
     }
 
     if (htmlText.startsWith("<!--", index)) {
+      const line = resolveLine(index);
       warnings.push(
         createWarning(
           "Comment is not closed. Add --> to finish the comment.",
-          resolveLine(index)
+          line,
+          line
         )
       );
     }
 
     if (/^<(script|style|textarea|title)\b/i.test(htmlText.slice(index))) {
+      const line = resolveLine(index);
       warnings.push(
         createWarning(
           "Raw text tag is not closed. Add a matching closing tag.",
-          resolveLine(index)
+          line,
+          line
         )
       );
     }
@@ -585,6 +593,7 @@ function parseHtml(htmlText) {
     warnings.push(
       createWarning(
         `Unclosed tag <${unclosedElement.tag}> was automatically closed at the end of input.`,
+        getOpenLine(unclosedElement),
         getOpenLine(unclosedElement)
       )
     );
@@ -605,6 +614,7 @@ function html2json(htmlText) {
       warnings: [
         createWarning(
           "Input must be a string with HTML content.",
+          1,
           1
         ),
       ],
@@ -629,6 +639,7 @@ function html2json(htmlText) {
       warnings: [
         createWarning(
           "Internal parser error occurred. Please review your HTML input and try again.",
+          1,
           1
         ),
       ],
