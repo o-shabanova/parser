@@ -55,9 +55,15 @@ function convertHtml2JsonAndSet() {
   - Entities are decoded in text nodes and attribute values, not in script, style, comments, or doctype.
 */
 function html2json(htmlText) {
+  if (typeof htmlText !== "string") {
+    return {
+      type: "document",
+      children: [],
+    };
+  }
   return {
-    "Conversion results": "should be instead of this json obj",
-    "Just to show that it is dynamic value (input length)" : htmlText.length,
+    type: "document",
+    children: [],
   };
 }
 
@@ -133,4 +139,8 @@ function showExample2() {
     null,
     2
   );
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { html2json };
 }
