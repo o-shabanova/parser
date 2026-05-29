@@ -537,6 +537,7 @@ function parseHtml(htmlText) {
   const root = {
     type: "document",
     children: [],
+    warnings: [],
   };
   const stack = [root];
   const warnings = createWarningCollection();
@@ -599,9 +600,7 @@ function parseHtml(htmlText) {
     );
   }
 
-  if (warnings.length > 0) {
-    root.warnings = warnings;
-  }
+  root.warnings = warnings;
 
   return root;
 }
@@ -627,11 +626,12 @@ function html2json(htmlText) {
     return {
       type: "document",
       children: [],
+      warnings: [],
     };
   }
 
   try {
-    return parseHtml(trimmedHtml);
+    return parseHtml(htmlText);
   } catch (error) {
     return {
       type: "document",

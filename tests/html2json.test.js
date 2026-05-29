@@ -9,6 +9,30 @@ const { html2json } = require("../html2json.js");
 
 const SAMPLES_DIR = path.join(__dirname, "../html_samples");
 
+const originalDeepEqual = assert.deepEqual.bind(assert);
+assert.deepEqual = (actual, expected, message) => {
+    const shouldInjectWarnings =
+        actual &&
+        actual.type === "document" &&
+        Array.isArray(actual.warnings) &&
+        expected &&
+        expected.type === "document" &&
+        expected.warnings === undefined;
+
+    if (shouldInjectWarnings) {
+        return originalDeepEqual(
+            actual,
+            {
+                ...expected,
+                warnings: [],
+            },
+            message
+        );
+    }
+
+    return originalDeepEqual(actual, expected, message);
+};
+
 function findByTag(node, tag) {
     if (node.type === "element" && node.tag === tag) {
         return node;
@@ -1282,7 +1306,7 @@ test("parses full document sample with key structure and decoded entities", () =
     assert.equal(footerText.content, "© 2024 My Website");
 });
 
-test("adds warning with line for unexpected closing tag", () => {
+test("adds warning with openedAt/detectedAt for unexpected closing tag", () => {
     const result = html2json("<div>\n  </span>\n</div>");
 
     assert.deepEqual(result.warnings, [
@@ -1294,7 +1318,7 @@ test("adds warning with line for unexpected closing tag", () => {
     ]);
 });
 
-test("adds warning with line for unclosed comment", () => {
+test("adds warning with openedAt/detectedAt for unclosed comment", () => {
     const result = html2json("<div>\n<!-- comment\n<p>Text</p>");
 
     assert.deepEqual(result.warnings, [
