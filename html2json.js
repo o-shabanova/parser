@@ -54,6 +54,43 @@ function convertHtml2JsonAndSet() {
   - Malformed HTML produces a best-effort tree; never throws.
   - Entities are decoded in text nodes and attribute values, not in script, style, comments, or doctype.
 */
+function decodeHtmlEntities(value) {
+  const namedEntities = {
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: "\"",
+    apos: "'",
+    nbsp: "\u00A0",
+  };
+
+  return value.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z][\w]+);/g, (fullMatch, entityBody) => {
+    if (entityBody[0] === "#") {
+      const isHex = entityBody[1] === "x" || entityBody[1] === "X";
+      const numericPart = isHex ? entityBody.slice(2) : entityBody.slice(1);
+      const base = isHex ? 16 : 10;
+      const codePoint = Number.parseInt(numericPart, base);
+
+      if (!Number.isFinite(codePoint) || codePoint < 0 || codePoint > 0x10ffff) {
+        return fullMatch;
+      }
+
+      try {
+        return String.fromCodePoint(codePoint);
+      } catch {
+        return fullMatch;
+      }
+    }
+
+    const lowerName = entityBody.toLowerCase();
+    if (Object.prototype.hasOwnProperty.call(namedEntities, lowerName)) {
+      return namedEntities[lowerName];
+    }
+
+    return fullMatch;
+  });
+}
+
 function parseAttributes(attributesText) {
   const attributes = {};
   const matchedAttributeNames = new Set();
@@ -61,7 +98,8 @@ function parseAttributes(attributesText) {
   attributesText.replace(
     /([a-zA-Z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g,
     (match, name, doubleQuotedValue, singleQuotedValue, unquotedValue) => {
-      attributes[name] = doubleQuotedValue ?? singleQuotedValue ?? unquotedValue;
+      const rawValue = doubleQuotedValue ?? singleQuotedValue ?? unquotedValue;
+      attributes[name] = decodeHtmlEntities(rawValue);
       matchedAttributeNames.add(name);
       return match;
     }
@@ -174,7 +212,7 @@ function parseHtml(htmlText) {
     if (textContent) {
       stack[stack.length - 1].children.push({
         type: "text",
-        content: textContent,
+        content: decodeHtmlEntities(textContent),
       });
     }
   });

@@ -417,3 +417,110 @@ test("parses doctype node before html root", () => {
         ],
     });
 });
+
+test("decodes named entity in text", () => {
+    const result = html2json("<p>Tom &amp; Jerry</p>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "Tom & Jerry",
+                    },
+                ],
+            },
+        ],
+    });
+});
+test("decodes numeric decimal entity in text", () => {
+    const result = html2json("<p>Euro: &#8364;</p>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "Euro: €",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("decodes numeric hex entity in text", () => {
+    const result = html2json("<p>Letter: &#x41;</p>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "Letter: A",
+                    },
+                ],
+            },
+        ],
+    });
+});
+test("keeps malformed entity literal in text", () => {
+    const result = html2json("<p>Broken: &notanentity</p>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "Broken: &notanentity",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("decodes entities in attribute values", () => {
+    const result = html2json('<a title="Tom &amp; Jerry">Link</a>');
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "a",
+                attributes: {
+                    title: "Tom & Jerry",
+                },
+                children: [
+                    {
+                        type: "text",
+                        content: "Link",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+
