@@ -1335,3 +1335,39 @@ test("adds warning with openedAt/detectedAt for unclosed comment", () => {
     ]);
 });
 
+test("normalizes CRLF to LF in text node content", () => {
+    const result = html2json("<p>a\r\nb</p>");
+
+    assert.equal(result.children[0].children[0].content, "a\nb");
+});
+
+test("normalizes standalone carriage return to LF in text node content", () => {
+    const result = html2json("<p>a\rb</p>");
+
+    assert.equal(result.children[0].children[0].content, "a\nb");
+});
+
+test("normalizes CRLF in script raw text without decoding entities", () => {
+    const result = html2json("<script>line1\r\n&amp;line2</script>");
+
+    assert.equal(result.children[0].children[0].content, "line1\n&amp;line2");
+});
+
+test("normalizes CRLF in textarea content and decodes entities", () => {
+    const result = html2json("<textarea>one\r\n&amp; two</textarea>");
+
+    assert.equal(result.children[0].children[0].content, "one\n& two");
+});
+
+test("counts CRLF line breaks in warning line numbers", () => {
+    const result = html2json("<div>\r\n  </span>\r\n</div>");
+
+    assert.deepEqual(result.warnings, [
+        {
+            message: "Unexpected closing tag </span>. No matching opening tag was found.",
+            openedAt: 1,
+            detectedAt: 2,
+        },
+    ]);
+});
+

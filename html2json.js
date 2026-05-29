@@ -21,7 +21,7 @@ function convertHtml2JsonAndSet() {
   {
     type: "element",
     tag: string,          
-    attributes: { [name: string]: string },
+    attributes: { [name: string]: string | boolean },
     children: Node[]
   }
 
@@ -51,9 +51,12 @@ function convertHtml2JsonAndSet() {
   }
 
   Policies:
-  - Whitespace-only text nodes between tags are omitted (except inside pre, textarea, script, style).
+  - Whitespace in text nodes is preserved as written (including whitespace-only nodes between tags).
+  - Text node content normalizes line endings: \\r\\n and standalone \\r become \\n.
   - Malformed HTML produces a best-effort tree; never throws.
   - Entities are decoded in text nodes and attribute values, not in script, style, comments, or doctype.
+  - Entity references must include a trailing semicolon (e.g. &copy;, &#169;, &#xA9;).
+  - Warning line numbers treat \\r\\n and standalone \\r as line breaks.
 */
 function decodeHtmlEntities(value) {
   const namedEntities = {
@@ -155,7 +158,12 @@ function buildLineStartIndexes(text) {
   const lineStartIndexes = [0];
 
   for (let i = 0; i < text.length; i += 1) {
-    if (text[i] === "\n") {
+    if (text[i] === "\r") {
+      if (text[i + 1] === "\n") {
+        i += 1;
+      }
+      lineStartIndexes.push(i + 1);
+    } else if (text[i] === "\n") {
       lineStartIndexes.push(i + 1);
     }
   }
@@ -206,6 +214,10 @@ function getOpenLine(node) {
   return 1;
 }
 
+function normalizeTextLineEndings(content) {
+  return content.replace(/\r\n?/g, "\n");
+}
+
 /* Node builders and tree write helpers */
 function appendToCurrentParent(stack, node) {
   stack[stack.length - 1].children.push(node);
@@ -214,7 +226,7 @@ function appendToCurrentParent(stack, node) {
 function createTextNode(content) {
   return {
     type: "text",
-    content: decodeHtmlEntities(content),
+    content: decodeHtmlEntities(normalizeTextLineEndings(content)),
   };
 }
 
@@ -239,7 +251,7 @@ function createRawTextNode(tag, content) {
   if (tag === "script" || tag === "style") {
     return {
       type: "text",
-      content,
+      content: normalizeTextLineEndings(content),
     };
   }
 
