@@ -20,7 +20,7 @@ test("returns empty document object for non-string input", () => {
     });
 });
 
-test("returns empty document object for plain text", () => {
+test("returns text node for plain text", () => {
     const result = html2json("Hello!");
     assert.deepEqual(result, {
         type: "document",
@@ -31,4 +31,25 @@ test("returns empty document object for plain text", () => {
             },
         ],
     });
+});
+
+test("returns element with text child for paired tag", () => {
+    const result = html2json("<div>Hello!</div>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+          {
+            type: "element",
+            tag: "div",
+            attributes: {},
+            children: [
+              {
+                type: "text",
+                content: "Hello!",
+              },
+            ],
+          },
+        ],
+      });
 });

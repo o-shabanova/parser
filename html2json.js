@@ -70,6 +70,30 @@ function html2json(htmlText) {
     };
   }
 
+  const match = trimmedHtml.match(/^<([a-zA-Z][\w-]*)>([^<]*)<\/\1>$/);
+
+  if (match) {
+    const tag = match[1];
+    const content = match[2];
+
+    return {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag,
+          attributes: {},
+          children: [
+            {
+              type: "text",
+              content,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
   return {
     type: "document",
     children: [
