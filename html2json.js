@@ -46,8 +46,8 @@ function convertHtml2JsonAndSet() {
   Warning (malformed HTML recovery):
   {
     message: string,
-    openedAt: number,
-    detectedAt: number         
+    openedAt: number,   // 1-based line where the issue originated (tag/comment open)
+    detectedAt: number  // 1-based line where the issue was detected (often EOF for unclosed tags)
   }
 
   Policies:
@@ -485,7 +485,7 @@ function closeTagWithRecovery(stack, tag, tokenLine, warnings) {
     warnings.push(
       createWarning(
         `Unexpected closing tag </${tag}>. No matching opening tag was found.`,
-        getOpenLine(stack[stack.length - 1]),
+        tokenLine,
         tokenLine
       )
     );
@@ -607,7 +607,7 @@ function parseHtml(htmlText) {
       createWarning(
         `Unclosed tag <${unclosedElement.tag}> was automatically closed at the end of input.`,
         getOpenLine(unclosedElement),
-        getOpenLine(unclosedElement)
+        resolveLine(htmlText.length)
       )
     );
   }

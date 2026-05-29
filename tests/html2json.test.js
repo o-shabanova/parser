@@ -1312,7 +1312,7 @@ test("adds warning with openedAt/detectedAt for unexpected closing tag", () => {
     assert.deepEqual(result.warnings, [
         {
             message: "Unexpected closing tag </span>. No matching opening tag was found.",
-            openedAt: 1,
+            openedAt: 2,
             detectedAt: 2,
         },
     ]);
@@ -1330,7 +1330,7 @@ test("adds warning with openedAt/detectedAt for unclosed comment", () => {
         {
             message: "Unclosed tag <div> was automatically closed at the end of input.",
             openedAt: 1,
-            detectedAt: 1,
+            detectedAt: 3,
         },
     ]);
 });
@@ -1365,7 +1365,7 @@ test("counts CRLF line breaks in warning line numbers", () => {
     assert.deepEqual(result.warnings, [
         {
             message: "Unexpected closing tag </span>. No matching opening tag was found.",
-            openedAt: 1,
+            openedAt: 2,
             detectedAt: 2,
         },
     ]);
