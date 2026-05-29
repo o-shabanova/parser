@@ -602,7 +602,7 @@ function html2json(htmlText) {
       children: [],
       warnings: [
         createWarning(
-          "Internal parser error occurred. Please review your HTML input and try again.",
+          "Internal parser error occurred. Please review your HTML input and try again:" + error.message,
           1,
           1
         ),
