@@ -523,4 +523,64 @@ test("decodes entities in attribute values", () => {
     });
 });
 
+test("parses style content as raw text", () => {
+    const result = html2json("<style>div{color:<red>}</style>");
+
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "style",
+          attributes: {},
+          children: [
+            {
+              type: "text",
+              content: "div{color:<red>}",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+test("parses raw style block followed by sibling element", () => {
+    const result = html2json("<div><style>p{content:\"<x>\"}</style><p>After</p></div>");
+
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "div",
+          attributes: {},
+          children: [
+            {
+              type: "element",
+              tag: "style",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "p{content:\"<x>\"}",
+                },
+              ],
+            },
+            {
+              type: "element",
+              tag: "p",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "After",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
 
