@@ -583,4 +583,65 @@ test("parses raw style block followed by sibling element", () => {
     });
   });
 
+  test("parses script content as raw text", () => {
+    const result = html2json("<script>if (a < b) { x = \"<tag>\"; }</script>");
+
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "script",
+          attributes: {},
+          children: [
+            {
+              type: "text",
+              content: "if (a < b) { x = \"<tag>\"; }",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+test("parses raw script block followed by sibling element", () => {
+    const result = html2json("<div><script>const x = a < b;</script><p>After</p></div>");
+
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "div",
+          attributes: {},
+          children: [
+            {
+              type: "element",
+              tag: "script",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "const x = a < b;",
+                },
+              ],
+            },
+            {
+              type: "element",
+              tag: "p",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "After",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+
 

@@ -144,15 +144,38 @@ function parseHtml(htmlText) {
   const stack = [root];
 
   const parts = htmlText
-    .split(/(<style\b[^>]*>[\s\S]*?<\/style\s*>|<!--[\s\S]*?-->|<!DOCTYPE[\s\S]*?>|<\/?[a-zA-Z][\w-]*(?:\s+[^<>]*)?>)/i)
+    .split(/(<style\b[^>]*>[\s\S]*?<\/style\s*>|<script\b[^>]*>[\s\S]*?<\/script\s*>|<!--[\s\S]*?-->|<!DOCTYPE[\s\S]*?>|<\/?[a-zA-Z][\w-]*(?:\s+[^<>]*)?>)/i)
     .filter((part) => part !== "");
 
   parts.forEach((part) => {
+    const scriptBlockMatch = part.match(/^<script\b([^>]*)>([\s\S]*?)<\/script\s*>$/i);
     const styleBlockMatch = part.match(/^<style\b([^>]*)>([\s\S]*?)<\/style\s*>$/i);
     const doctypeMatch = part.match(/^<!DOCTYPE\s+([^>]+)>$/i);
     const commentMatch = part.match(/^<!--([\s\S]*?)-->$/);
     const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)(?:\s+([^<>]*))?>$/);
     const closingTagMatch = part.match(/^<\/([a-zA-Z][\w-]*)>$/);
+
+    if (scriptBlockMatch) {
+      const rawAttributesText = scriptBlockMatch[1] || "";
+      const attributesText = rawAttributesText.trim();
+      const scriptContent = scriptBlockMatch[2];
+      const scriptElement = {
+        type: "element",
+        tag: "script",
+        attributes: parseAttributes(attributesText),
+        children: [],
+      };
+
+      if (scriptContent !== "") {
+        scriptElement.children.push({
+          type: "text",
+          content: decodeHtmlEntities(scriptContent),
+        });
+      }
+
+      stack[stack.length - 1].children.push(scriptElement);
+      return;
+    }
 
     if (styleBlockMatch) {
       const rawAttributesText = styleBlockMatch[1] || "";
