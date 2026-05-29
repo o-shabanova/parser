@@ -53,3 +53,79 @@ test("returns element with text child for paired tag", () => {
         ],
       });
 });
+
+test("returns empty document for empty string", () => {
+    const result = html2json("   ");
+  
+    assert.deepEqual(result, {
+      type: "document",
+      children: [],
+    });
+  });
+
+  test("returns nested element inside div", () => {
+    const result = html2json("<div><p>Hello!</p></div>");
+  
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "div",
+          attributes: {},
+          children: [
+            {
+              type: "element",
+              tag: "p",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "Hello!",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+test("returns sibling elements inside div", () => {
+    const result = html2json("<div><p>One</p><p>Two</p></div>");
+  
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "div",
+          attributes: {},
+          children: [
+            {
+              type: "element",
+              tag: "p",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "One",
+                },
+              ],
+            },
+            {
+              type: "element",
+              tag: "p",
+              attributes: {},
+              children: [
+                {
+                  type: "text",
+                  content: "Two",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });

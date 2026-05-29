@@ -54,6 +54,61 @@ function convertHtml2JsonAndSet() {
   - Malformed HTML produces a best-effort tree; never throws.
   - Entities are decoded in text nodes and attribute values, not in script, style, comments, or doctype.
 */
+function parseHtml(htmlText) {
+  const root = {
+    type: "document",
+    children: [],
+  };
+
+  const stack = [root];
+
+  const parts = htmlText
+    .split(/(<\/?[a-zA-Z][\w-]*>)/)
+    .filter((part) => part !== "");
+
+  parts.forEach((part) => {
+    const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)>$/);
+    const closingTagMatch = part.match(/^<\/([a-zA-Z][\w-]*)>$/);
+
+    if (closingTagMatch) {
+      const tag = closingTagMatch[1].toLowerCase();
+
+      if (stack.length > 1 && stack[stack.length - 1].tag === tag) {
+        stack.pop();
+      }
+
+      return;
+    }
+
+    if (openingTagMatch) {
+      const tag = openingTagMatch[1].toLowerCase();
+
+      const element = {
+        type: "element",
+        tag,
+        attributes: {},
+        children: [],
+      };
+
+      stack[stack.length - 1].children.push(element);
+      stack.push(element);
+
+      return;
+    }
+
+    const textContent = part.trim();
+
+    if (textContent) {
+      stack[stack.length - 1].children.push({
+        type: "text",
+        content: textContent,
+      });
+    }
+  });
+
+  return root;
+}
+
 function html2json(htmlText) {
   if (typeof htmlText !== "string") {
     return {
@@ -61,8 +116,8 @@ function html2json(htmlText) {
       children: [],
     };
   }
-  const trimmedHtml = htmlText.trim();
 
+  const trimmedHtml = htmlText.trim();
   if (trimmedHtml === "") {
     return {
       type: "document",
@@ -70,39 +125,14 @@ function html2json(htmlText) {
     };
   }
 
-  const match = trimmedHtml.match(/^<([a-zA-Z][\w-]*)>([^<]*)<\/\1>$/);
-
-  if (match) {
-    const tag = match[1];
-    const content = match[2];
-
+  try {
+    return parseHtml(trimmedHtml);
+  } catch {
     return {
       type: "document",
-      children: [
-        {
-          type: "element",
-          tag,
-          attributes: {},
-          children: [
-            {
-              type: "text",
-              content,
-            },
-          ],
-        },
-      ],
+      children: [],
     };
   }
-
-  return {
-    type: "document",
-    children: [
-      {
-        type: "text",
-        content: trimmedHtml,
-      },
-    ],
-  };
 }
 
 function showExample1() {
