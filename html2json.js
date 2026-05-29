@@ -40,7 +40,7 @@ function convertHtml2JsonAndSet() {
   Doctype:
   {
     type: "doctype",
-    name: string
+    content: string
   }
 
   Warning (malformed HTML recovery):

@@ -7,6 +7,27 @@ const path = require("node:path");
 
 const { html2json } = require("../html2json.js");
 
+const SAMPLES_DIR = path.join(__dirname, "../html_samples");
+
+function findByTag(node, tag) {
+    if (node.type === "element" && node.tag === tag) {
+        return node;
+    }
+
+    if (!Array.isArray(node.children)) {
+        return null;
+    }
+
+    for (const child of node.children) {
+        const found = findByTag(child, tag);
+        if (found) {
+            return found;
+        }
+    }
+
+    return null;
+}
+
 test("html2json is a function", () => {
     assert.equal(typeof html2json, "function");
 });
@@ -1180,5 +1201,56 @@ test("recovers stack by popping until matching closing tag", () => {
             },
         ],
     });
+});
+
+test("does not crash on html_samples fixtures", () => {
+    const sampleFiles = fs
+        .readdirSync(SAMPLES_DIR)
+        .filter((fileName) => fileName.endsWith(".html"))
+        .sort();
+
+    assert.ok(sampleFiles.length > 0);
+
+    for (const fileName of sampleFiles) {
+        const html = fs.readFileSync(path.join(SAMPLES_DIR, fileName), "utf8");
+        const result = html2json(html);
+
+        assert.equal(result.type, "document", fileName);
+        assert.ok(Array.isArray(result.children), fileName);
+    }
+});
+
+test("parses full document sample with key structure and decoded entities", () => {
+    const html = fs.readFileSync(
+        path.join(SAMPLES_DIR, "01-full-document.html"),
+        "utf8"
+    );
+    const result = html2json(html);
+
+    assert.equal(result.type, "document");
+    assert.deepEqual(result.children[0], {
+        type: "doctype",
+        content: "html",
+    });
+
+    const htmlElement = result.children.find(
+        (child) => child.type === "element" && child.tag === "html"
+    );
+    assert.ok(htmlElement);
+    assert.equal(htmlElement.attributes.lang, "en");
+
+    assert.ok(findByTag(result, "header"));
+    assert.ok(findByTag(result, "nav"));
+    assert.ok(findByTag(result, "main"));
+    assert.ok(findByTag(result, "footer"));
+
+    const footerParagraph = findByTag(result, "footer").children.find(
+        (child) => child.type === "element" && child.tag === "p"
+    );
+    const footerText = footerParagraph.children.find(
+        (child) => child.type === "text"
+    );
+
+    assert.equal(footerText.content, "© 2024 My Website");
 });
 
