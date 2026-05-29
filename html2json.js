@@ -1,8 +1,13 @@
 function convertHtml2JsonAndSet() {
   const htmlTextAreaValue = document.getElementById("html").value;
-  const jsonObj = html2json(htmlTextAreaValue);
   const jsonArea = document.getElementById("json");
-  jsonArea.textContent = JSON.stringify(jsonObj, null, 2);
+  try {
+    const jsonObj = html2json(htmlTextAreaValue);
+    jsonArea.textContent = JSON.stringify(jsonObj, null, 2);
+  } catch (error) {
+    console.log(error);
+    jsonArea.textContent = error.message;
+  }
 }
 
 function decodeHtmlEntities(value) {
