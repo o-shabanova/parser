@@ -144,15 +144,15 @@ function parseHtml(htmlText) {
   const stack = [root];
 
   const parts = htmlText
-    .split(/(<style\b[^>]*>[\s\S]*?<\/style\s*>|<script\b[^>]*>[\s\S]*?<\/script\s*>|<!--[\s\S]*?-->|<!DOCTYPE[\s\S]*?>|<\/?[a-zA-Z][\w-]*(?:\s+[^<>]*)?>)/i)
+    .split(/(<style\b(?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?\s*>[\s\S]*?<\/style\s*>|<script\b(?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?\s*>[\s\S]*?<\/script\s*>|<!--[\s\S]*?-->|<!DOCTYPE[\s\S]*?>|<\/[a-zA-Z][\w-]*\s*>|<[a-zA-Z][\w-]*(?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?\s*\/?>)/i)
     .filter((part) => part !== "");
 
   parts.forEach((part) => {
-    const scriptBlockMatch = part.match(/^<script\b([^>]*)>([\s\S]*?)<\/script\s*>$/i);
-    const styleBlockMatch = part.match(/^<style\b([^>]*)>([\s\S]*?)<\/style\s*>$/i);
+    const styleBlockMatch = part.match(/^<style\b((?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?)\s*>([\s\S]*?)<\/style\s*>$/i);
+    const scriptBlockMatch = part.match(/^<script\b((?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?)\s*>([\s\S]*?)<\/script\s*>$/i);
     const doctypeMatch = part.match(/^<!DOCTYPE\s+([^>]+)>$/i);
     const commentMatch = part.match(/^<!--([\s\S]*?)-->$/);
-    const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)(?:\s+([^<>]*))?>$/);
+    const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)(?:\s+((?:"[^"]*"|'[^']*'|[^'"<>])*))?\s*\/?>$/);
     const closingTagMatch = part.match(/^<\/([a-zA-Z][\w-]*)>$/);
 
     if (scriptBlockMatch) {

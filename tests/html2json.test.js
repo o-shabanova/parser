@@ -527,121 +527,261 @@ test("parses style content as raw text", () => {
     const result = html2json("<style>div{color:<red>}</style>");
 
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "style",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "text",
-              content: "div{color:<red>}",
+                type: "element",
+                tag: "style",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "div{color:<red>}",
+                    },
+                ],
             },
-          ],
-        },
-      ],
+        ],
     });
-  });
+});
 
 test("parses raw style block followed by sibling element", () => {
     const result = html2json("<div><style>p{content:\"<x>\"}</style><p>After</p></div>");
 
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "div",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "element",
-              tag: "style",
-              attributes: {},
-              children: [
-                {
-                  type: "text",
-                  content: "p{content:\"<x>\"}",
-                },
-              ],
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "style",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "p{content:\"<x>\"}",
+                            },
+                        ],
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "After",
+                            },
+                        ],
+                    },
+                ],
             },
-            {
-              type: "element",
-              tag: "p",
-              attributes: {},
-              children: [
-                {
-                  type: "text",
-                  content: "After",
-                },
-              ],
-            },
-          ],
-        },
-      ],
+        ],
     });
-  });
+});
 
-  test("parses script content as raw text", () => {
+test("parses script content as raw text", () => {
     const result = html2json("<script>if (a < b) { x = \"<tag>\"; }</script>");
 
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "script",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "text",
-              content: "if (a < b) { x = \"<tag>\"; }",
+                type: "element",
+                tag: "script",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "if (a < b) { x = \"<tag>\"; }",
+                    },
+                ],
             },
-          ],
-        },
-      ],
+        ],
     });
-  });
+});
 
 test("parses raw script block followed by sibling element", () => {
     const result = html2json("<div><script>const x = a < b;</script><p>After</p></div>");
 
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "div",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "element",
-              tag: "script",
-              attributes: {},
-              children: [
-                {
-                  type: "text",
-                  content: "const x = a < b;",
-                },
-              ],
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "script",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "const x = a < b;",
+                            },
+                        ],
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "After",
+                            },
+                        ],
+                    },
+                ],
             },
-            {
-              type: "element",
-              tag: "p",
-              attributes: {},
-              children: [
-                {
-                  type: "text",
-                  content: "After",
-                },
-              ],
-            },
-          ],
-        },
-      ],
+        ],
     });
-  });
+});
 
+test("parses quoted attribute value containing greater-than sign", () => {
+    const result = html2json('<div data-note="1 > 0"><p>ok</p></div>');
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "div",
+                attributes: {
+                    "data-note": "1 > 0",
+                },
+                children: [
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "ok",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("parses single-quoted attribute value containing greater-than sign", () => {
+    const result = html2json("<div data-note='x > y'>content</div>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "div",
+                attributes: {
+                    "data-note": "x > y",
+                },
+                children: [
+                    {
+                        type: "text",
+                        content: "content",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("builds deterministic best-effort output for malformed corpus", () => {
+    const singleLessThan = html2json("<");
+    assert.deepEqual(singleLessThan, {
+        type: "document",
+        children: [
+            {
+                type: "text",
+                content: "<",
+            },
+        ],
+    });
+    const malformedPseudoTag = html2json("<<p>>");
+    assert.deepEqual(malformedPseudoTag, {
+        type: "document",
+        children: [
+            {
+                type: "text",
+                content: "<",
+            },
+            {
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: ">",
+                    },
+                ],
+            },
+        ],
+    });
+    const mismatchedNesting = html2json("<div><span></div>");
+    assert.deepEqual(mismatchedNesting, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "span",
+                        attributes: {},
+                        children: [],
+                    },
+                ],
+            },
+        ],
+    });
+
+    const malformedAttributeQuote = html2json("<div a='1\" b=2>");
+    assert.deepEqual(malformedAttributeQuote, {
+        type: "document",
+        children: [
+            {
+                type: "text",
+                content: "<div a='1\" b=2>",
+            },
+        ],
+    });
+
+    const malformedTable = html2json("<table><tr><td>1<tr><td>2</table>");
+    assert.equal(malformedTable.type, "document");
+    assert.equal(malformedTable.children[0].tag, "table");
+    assert.equal(malformedTable.children[0].children[0].tag, "tr");
+    assert.equal(malformedTable.children[0].children[0].children[0].tag, "td");
+    assert.equal(
+        malformedTable.children[0].children[0].children[0].children[0].content,
+        "1"
+    );
+    assert.equal(
+        malformedTable.children[0].children[0].children[0].children[1].tag,
+        "tr"
+    );
+    assert.equal(
+        malformedTable.children[0].children[0].children[0].children[1].children[0]
+            .tag,
+        "td"
+    );
+    assert.equal(
+        malformedTable.children[0].children[0].children[0].children[1].children[0]
+            .children[0].content,
+        "2"
+    );
+});
 
 
