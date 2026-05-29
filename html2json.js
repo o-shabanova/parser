@@ -189,6 +189,21 @@ function createLineResolver(text) {
   return (index) => resolveLineNumber(lineStartIndexes, index);
 }
 
+function setOpenLine(node, line) {
+  Object.defineProperty(node, "_openLine", {
+    value: line,
+    enumerable: false,
+  });
+}
+
+function getOpenLine(node) {
+  if (node && Number.isInteger(node._openLine)) {
+    return node._openLine;
+  }
+
+  return 1;
+}
+
 /* Node builders and tree write helpers */
 function appendToCurrentParent(stack, node) {
   stack[stack.length - 1].children.push(node);
@@ -443,7 +458,7 @@ function consumeNextToken(htmlText, startIndex) {
 }
 
 /* Parser flow helpers */
-function closeTagWithRecovery(stack, tag) {
+function closeTagWithRecovery(stack, tag, tokenLine, warnings) {
   let foundTagIndex = -1;
   for (let i = stack.length - 1; i > 0; i -= 1) {
     if (stack[i].tag === tag) {
@@ -452,14 +467,31 @@ function closeTagWithRecovery(stack, tag) {
     }
   }
 
-  if (foundTagIndex !== -1) {
-    while (stack.length - 1 >= foundTagIndex) {
-      stack.pop();
-    }
+  if (foundTagIndex === -1) {
+    warnings.push(
+      createWarning(
+        `Unexpected closing tag </${tag}>. No matching opening tag was found.`,
+        tokenLine
+      )
+    );
+    return;
+  }
+
+  for (let i = stack.length - 1; i > foundTagIndex; i -= 1) {
+    warnings.push(
+      createWarning(
+        `Tag <${stack[i].tag}> was automatically closed before </${tag}>.`,
+        tokenLine
+      )
+    );
+  }
+
+  while (stack.length - 1 >= foundTagIndex) {
+    stack.pop();
   }
 }
 
-function applyToken(stack, token) {
+function applyToken(stack, token, warnings, tokenLine) {
   if (token.kind === "rawElement") {
     appendToCurrentParent(stack, createRawElementNode(token.value));
     return;
@@ -482,12 +514,13 @@ function applyToken(stack, token) {
   }
 
   if (token.kind === "closingTag") {
-    closeTagWithRecovery(stack, token.value.tag);
+    closeTagWithRecovery(stack, token.value.tag, tokenLine, warnings);
     return;
   }
 
   if (token.kind === "openingTag") {
     const element = createElementNode(token.value.tag, token.value.attributesText);
+    setOpenLine(element, tokenLine);
     appendToCurrentParent(stack, element);
 
     if (!token.value.isSelfClosing) {
@@ -502,6 +535,8 @@ function parseHtml(htmlText) {
     children: [],
   };
   const stack = [root];
+  const warnings = createWarningCollection();
+  const resolveLine = createLineResolver(htmlText);
   let index = 0;
   let textBuffer = "";
 
@@ -514,10 +549,29 @@ function parseHtml(htmlText) {
 
     const token = consumeNextToken(htmlText, index);
     if (token) {
+      const tokenLine = resolveLine(index);
       textBuffer = flushTextBuffer(stack, textBuffer);
-      applyToken(stack, token);
+      applyToken(stack, token, warnings, tokenLine);
       index = token.endIndex;
       continue;
+    }
+
+    if (htmlText.startsWith("<!--", index)) {
+      warnings.push(
+        createWarning(
+          "Comment is not closed. Add --> to finish the comment.",
+          resolveLine(index)
+        )
+      );
+    }
+
+    if (/^<(script|style|textarea|title)\b/i.test(htmlText.slice(index))) {
+      warnings.push(
+        createWarning(
+          "Raw text tag is not closed. Add a matching closing tag.",
+          resolveLine(index)
+        )
+      );
     }
 
     textBuffer += "<";
@@ -525,6 +579,20 @@ function parseHtml(htmlText) {
   }
 
   textBuffer = flushTextBuffer(stack, textBuffer);
+
+  while (stack.length > 1) {
+    const unclosedElement = stack.pop();
+    warnings.push(
+      createWarning(
+        `Unclosed tag <${unclosedElement.tag}> was automatically closed at the end of input.`,
+        getOpenLine(unclosedElement)
+      )
+    );
+  }
+
+  if (warnings.length > 0) {
+    root.warnings = warnings;
+  }
 
   return root;
 }
@@ -534,6 +602,12 @@ function html2json(htmlText) {
     return {
       type: "document",
       children: [],
+      warnings: [
+        createWarning(
+          "Input must be a string with HTML content.",
+          1
+        ),
+      ],
     };
   }
 
@@ -548,10 +622,16 @@ function html2json(htmlText) {
 
   try {
     return parseHtml(trimmedHtml);
-  } catch {
+  } catch (error) {
     return {
       type: "document",
       children: [],
+      warnings: [
+        createWarning(
+          "Internal parser error occurred. Please review your HTML input and try again.",
+          1
+        ),
+      ],
     };
   }
 }
