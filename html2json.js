@@ -298,8 +298,23 @@ function parseHtml(htmlText) {
       flushTextBuffer();
       const tag = closingTagMatch[1].toLowerCase();
 
-      if (stack.length > 1 && stack[stack.length - 1].tag === tag) {
-        stack.pop();
+      /*
+        Recovery rule for mismatched closing tags:
+        pop open elements until the matching tag is found, then pop it too.
+        If no matching tag exists in stack, ignore the closing tag.
+      */
+      let foundTagIndex = -1;
+      for (let i = stack.length - 1; i > 0; i -= 1) {
+        if (stack[i].tag === tag) {
+          foundTagIndex = i;
+          break;
+        }
+      }
+
+      if (foundTagIndex !== -1) {
+        while (stack.length - 1 >= foundTagIndex) {
+          stack.pop();
+        }
       }
 
       index += closingTagMatch[0].length;

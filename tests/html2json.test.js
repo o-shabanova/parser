@@ -1097,3 +1097,37 @@ test("ignores whitespace-only formatting text nodes", () => {
     });
   });
 
+  test("recovers stack by popping until matching closing tag", () => {
+    const result = html2json("<div><span></div><p>After</p>");
+
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "div",
+          attributes: {},
+          children: [
+            {
+              type: "element",
+              tag: "span",
+              attributes: {},
+              children: [],
+            },
+          ],
+        },
+        {
+          type: "element",
+          tag: "p",
+          attributes: {},
+          children: [
+            {
+              type: "text",
+              content: "After",
+            },
+          ],
+        },
+      ],
+    });
+  });
+
