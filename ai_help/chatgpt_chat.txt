@@ -1,3 +1,4 @@
 Not used for this task.
 
-AI assistance was provided via Cursor IDE. See the following file:
+AI assistance was provided via Cursor IDE. I added transcription as pdf as required to ai_help directory. 
+But just in case .md format is more readable, I've added it also.
