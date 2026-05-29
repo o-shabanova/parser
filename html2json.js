@@ -5,9 +5,54 @@ function convertHtml2JsonAndSet() {
   jsonArea.textContent = JSON.stringify(jsonObj, null, 2);
 }
 
-/* 
-  Update this function to convert html into json object.
-  You can rewrite it completely, just be sure it accepts htmlText as string and outputs json object.
+/*
+  JSON schema (DOM-like AST)
+
+  Root — always a document node:
+  {
+    type: "document",
+    children: Node[],
+    warnings: Warning[]
+  }
+
+  Node types:
+
+  Element:
+  {
+    type: "element",
+    tagName: string,          // lowercased
+    attributes: { [name: string]: string },
+    children: Node[]
+  }
+
+  Text:
+  {
+    type: "text",
+    content: string           // entities decoded in normal elements
+  }
+
+  Comment:
+  {
+    type: "comment",
+    content: string           // raw, entities not decoded
+  }
+
+  Doctype:
+  {
+    type: "doctype",
+    name: string
+  }
+
+  Warning (malformed HTML recovery):
+  {
+    message: string,
+    position: number          // character index in input string
+  }
+
+  Policies:
+  - Whitespace-only text nodes between tags are omitted (except inside pre, textarea, script, style).
+  - Malformed HTML produces a best-effort tree; never throws.
+  - Entities are decoded in text nodes and attribute values, not in script, style, comments, or doctype.
 */
 function html2json(htmlText) {
   return {
