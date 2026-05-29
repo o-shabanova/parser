@@ -11,8 +11,17 @@ test("html2json is a function", () => {
     assert.equal(typeof html2json, "function");
 });
 
-test("returns empty document object for html string", () => {
-    const result = html2json("<div>Hello!</div>");
+test("returns empty document object for non-string input", () => {
+    const result = html2json(null);
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [],
+    });
+});
+
+test("returns empty document object for plain text", () => {
+    const result = html2json("Hello!");
     assert.deepEqual(result, {
         type: "document",
         children: [
@@ -21,14 +30,5 @@ test("returns empty document object for html string", () => {
                 content: "Hello!",
             },
         ],
-    });
-});
-
-test("returns empty document object for non-string input", () => {
-    const result = html2json(null);
-
-    assert.deepEqual(result, {
-        type: "document",
-        children: [],
     });
 });

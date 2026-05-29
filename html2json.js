@@ -61,12 +61,21 @@ function html2json(htmlText) {
       children: [],
     };
   }
+  const trimmedHtml = htmlText.trim();
+
+  if (trimmedHtml === "") {
+    return {
+      type: "document",
+      children: [],
+    };
+  }
+
   return {
     type: "document",
     children: [
       {
         type: "text",
-        content: "Hello!",
+        content: trimmedHtml,
       },
     ],
   };
