@@ -118,6 +118,87 @@ function parseAttributes(attributesText) {
   return attributes;
 }
 
+function findRawClosingTag(htmlText, startIndex, tag) {
+  const lowerTag = tag.toLowerCase();
+  let quote = "";
+  let i = startIndex;
+
+  while (i < htmlText.length) {
+    const char = htmlText[i];
+
+    if (quote !== "") {
+      if (char === "\\") {
+        i += 2;
+        continue;
+      }
+
+      if (char === quote) {
+        quote = "";
+      }
+
+      i += 1;
+      continue;
+    }
+
+    if (char === "\"" || char === "'" || char === "`") {
+      quote = char;
+      i += 1;
+      continue;
+    }
+
+    if (char === "<" && htmlText[i + 1] === "/") {
+      const possibleTag = htmlText
+        .slice(i + 2, i + 2 + lowerTag.length)
+        .toLowerCase();
+
+      if (possibleTag === lowerTag) {
+        let closingIndex = i + 2 + lowerTag.length;
+
+        while (/\s/.test(htmlText[closingIndex] || "")) {
+          closingIndex += 1;
+        }
+
+        if (htmlText[closingIndex] === ">") {
+          return {
+            start: i,
+            end: closingIndex + 1,
+          };
+        }
+      }
+    }
+
+    i += 1;
+  }
+
+  return null;
+}
+
+function tryReadRawElement(htmlText, startIndex) {
+  const rawOpeningMatch = htmlText
+    .slice(startIndex)
+    .match(/^<(script|style|textarea|title)\b((?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?)\s*>/i);
+
+  if (!rawOpeningMatch) {
+    return null;
+  }
+
+  const tag = rawOpeningMatch[1].toLowerCase();
+  const rawAttributesText = rawOpeningMatch[2] || "";
+  const contentStart = startIndex + rawOpeningMatch[0].length;
+  const closingMatch = findRawClosingTag(htmlText, contentStart, tag);
+
+  if (!closingMatch) {
+    return null;
+  }
+
+  return {
+    tag,
+    attributesText: rawAttributesText.trim(),
+    content: htmlText.slice(contentStart, closingMatch.start),
+    endIndex: closingMatch.end,
+  };
+}
+
 function parseHtml(htmlText) {
   const voidTags = [
     "area",
@@ -135,105 +216,104 @@ function parseHtml(htmlText) {
     "track",
     "wbr",
   ];
-
   const root = {
     type: "document",
     children: [],
   };
-
   const stack = [root];
+  let index = 0;
+  let textBuffer = "";
 
-  const parts = htmlText
-    .split(/(<style\b(?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?\s*>[\s\S]*?<\/style\s*>|<script\b(?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?\s*>[\s\S]*?<\/script\s*>|<!--[\s\S]*?-->|<!DOCTYPE[\s\S]*?>|<\/[a-zA-Z][\w-]*\s*>|<[a-zA-Z][\w-]*(?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?\s*\/?>)/i)
-    .filter((part) => part !== "");
+  const flushTextBuffer = () => {
+    const textContent = textBuffer.trim();
 
-  parts.forEach((part) => {
-    const styleBlockMatch = part.match(/^<style\b((?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?)\s*>([\s\S]*?)<\/style\s*>$/i);
-    const scriptBlockMatch = part.match(/^<script\b((?:\s+(?:"[^"]*"|'[^']*'|[^'"<>])*)?)\s*>([\s\S]*?)<\/script\s*>$/i);
-    const doctypeMatch = part.match(/^<!DOCTYPE\s+([^>]+)>$/i);
-    const commentMatch = part.match(/^<!--([\s\S]*?)-->$/);
-    const openingTagMatch = part.match(/^<([a-zA-Z][\w-]*)(?:\s+((?:"[^"]*"|'[^']*'|[^'"<>])*))?\s*\/?>$/);
-    const closingTagMatch = part.match(/^<\/([a-zA-Z][\w-]*)>$/);
+    if (textContent) {
+      stack[stack.length - 1].children.push({
+        type: "text",
+        content: decodeHtmlEntities(textContent),
+      });
+    }
 
-    if (scriptBlockMatch) {
-      const rawAttributesText = scriptBlockMatch[1] || "";
-      const attributesText = rawAttributesText.trim();
-      const scriptContent = scriptBlockMatch[2];
-      const scriptElement = {
+    textBuffer = "";
+  };
+  while (index < htmlText.length) {
+    if (htmlText[index] !== "<") {
+      textBuffer += htmlText[index];
+      index += 1;
+      continue;
+    }
+
+    const rawElementMatch = tryReadRawElement(htmlText, index);
+    if (rawElementMatch) {
+      flushTextBuffer();
+
+      const rawElement = {
         type: "element",
-        tag: "script",
-        attributes: parseAttributes(attributesText),
+        tag: rawElementMatch.tag,
+        attributes: parseAttributes(rawElementMatch.attributesText),
         children: [],
       };
 
-      if (scriptContent !== "") {
-        scriptElement.children.push({
+      if (rawElementMatch.content !== "") {
+        rawElement.children.push({
           type: "text",
-          content: decodeHtmlEntities(scriptContent),
+          content:
+            rawElementMatch.tag === "script" || rawElementMatch.tag === "style"
+              ? rawElementMatch.content
+              : decodeHtmlEntities(rawElementMatch.content),
         });
       }
 
-      stack[stack.length - 1].children.push(scriptElement);
-      return;
+      stack[stack.length - 1].children.push(rawElement);
+      index = rawElementMatch.endIndex;
+      continue;
     }
+    if (htmlText.startsWith("<!--", index)) {
+      const commentEndIndex = htmlText.indexOf("-->", index + 4);
 
-    if (styleBlockMatch) {
-      const rawAttributesText = styleBlockMatch[1] || "";
-      const attributesText = rawAttributesText.trim();
-      const styleContent = styleBlockMatch[2];
-      const styleElement = {
-        type: "element",
-        tag: "style",
-        attributes: parseAttributes(attributesText),
-        children: [],
-      };
-
-      if (styleContent !== "") {
-        styleElement.children.push({
-          type: "text",
-          content: decodeHtmlEntities(styleContent),
+      if (commentEndIndex !== -1) {
+        flushTextBuffer();
+        stack[stack.length - 1].children.push({
+          type: "comment",
+          content: htmlText.slice(index + 4, commentEndIndex),
         });
+        index = commentEndIndex + 3;
+        continue;
       }
-
-      stack[stack.length - 1].children.push(styleElement);
-      return;
     }
 
+    const doctypeMatch = htmlText.slice(index).match(/^<!DOCTYPE\s+([^>]+)>/i);
     if (doctypeMatch) {
+      flushTextBuffer();
       stack[stack.length - 1].children.push({
         type: "doctype",
         content: doctypeMatch[1].trim(),
       });
-
-      return;
+      index += doctypeMatch[0].length;
+      continue;
     }
 
-    if (commentMatch) {
-      stack[stack.length - 1].children.push({
-        type: "comment",
-        content: commentMatch[1],
-      });
-
-      return;
-    }
-
+    const closingTagMatch = htmlText.slice(index).match(/^<\/([a-zA-Z][\w-]*)\s*>/);
     if (closingTagMatch) {
+      flushTextBuffer();
       const tag = closingTagMatch[1].toLowerCase();
 
       if (stack.length > 1 && stack[stack.length - 1].tag === tag) {
         stack.pop();
       }
 
-      return;
+      index += closingTagMatch[0].length;
+      continue;
     }
-
+    const openingTagMatch = htmlText
+      .slice(index)
+      .match(/^<([a-zA-Z][\w-]*)(?:\s+((?:"[^"]*"|'[^']*'|[^'"<>])*))?\s*\/?>/);
     if (openingTagMatch) {
+      flushTextBuffer();
       const tag = openingTagMatch[1].toLowerCase();
       const rawAttributesText = openingTagMatch[2] || "";
-
-      const isSelfClosing =
-        part.endsWith("/>") ||
-        voidTags.includes(tag);
+      const fullOpeningTag = openingTagMatch[0];
+      const isSelfClosing = fullOpeningTag.endsWith("/>") || voidTags.includes(tag);
       const attributesText = isSelfClosing
         ? rawAttributesText.replace(/\s*\/\s*$/, "")
         : rawAttributesText;
@@ -246,22 +326,20 @@ function parseHtml(htmlText) {
       };
 
       stack[stack.length - 1].children.push(element);
+
       if (!isSelfClosing) {
         stack.push(element);
       }
 
-      return;
+      index += fullOpeningTag.length;
+      continue;
     }
 
-    const textContent = part.trim();
+    textBuffer += "<";
+    index += 1;
+  }
 
-    if (textContent) {
-      stack[stack.length - 1].children.push({
-        type: "text",
-        content: decodeHtmlEntities(textContent),
-      });
-    }
-  });
+  flushTextBuffer();
 
   return root;
 }

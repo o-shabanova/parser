@@ -784,4 +784,247 @@ test("builds deterministic best-effort output for malformed corpus", () => {
     );
 });
 
+test("keeps entities literal inside style raw text", () => {
+    const result = html2json("<style>.x::before{content:\"&amp;\";}</style>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "style",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: ".x::before{content:\"&amp;\";}",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("keeps entities literal inside script raw text", () => {
+    const result = html2json("<script>const x = \"&lt;div&gt;\";</script>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "script",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "const x = \"&lt;div&gt;\";",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("does not close style block on closing tag text inside quotes", () => {
+    const result = html2json("<div><style>.x::before{content:\"</style>\";}</style><p>After</p></div>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "style",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: ".x::before{content:\"</style>\";}",
+                            },
+                        ],
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "After",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("parses textarea content as raw text", () => {
+    const result = html2json("<textarea>Some <b>raw</b> text</textarea>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "textarea",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "Some <b>raw</b> text",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("decodes entities inside textarea content", () => {
+    const result = html2json("<textarea>A &amp; B</textarea>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "textarea",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "A & B",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("does not close script block on closing tag text inside quotes", () => {
+    const result = html2json("<div><script>const s = \"</script>\"; const n = 1;</script><p>After</p></div>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "script",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "const s = \"</script>\"; const n = 1;",
+                            },
+                        ],
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "After",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("parses raw textarea block followed by sibling element", () => {
+    const result = html2json("<div><textarea>1 < 2 && 3 > 2</textarea><p>After</p></div>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "textarea",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "1 < 2 && 3 > 2",
+                            },
+                        ],
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "After",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("parses title content as raw text", () => {
+    const result = html2json("<title>Hello <world></title>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "title",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "Hello <world>",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("decodes entities inside title content", () => {
+    const result = html2json("<title>A &amp; B</title>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "title",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "A & B",
+                    },
+                ],
+            },
+        ],
+    });
+});
+
 
