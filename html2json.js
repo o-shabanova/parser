@@ -5,59 +5,6 @@ function convertHtml2JsonAndSet() {
   jsonArea.textContent = JSON.stringify(jsonObj, null, 2);
 }
 
-/*
-  JSON schema (DOM-like AST)
-
-  Root — always a document node:
-  {
-    type: "document",
-    children: Node[],
-    warnings: Warning[]
-  }
-
-  Node types:
-
-  Element:
-  {
-    type: "element",
-    tag: string,          
-    attributes: { [name: string]: string | boolean },
-    children: Node[]
-  }
-
-  Text:
-  {
-    type: "text",
-    content: string           
-  }
-
-  Comment:
-  {
-    type: "comment",
-    content: string          
-  }
-
-  Doctype:
-  {
-    type: "doctype",
-    content: string
-  }
-
-  Warning (malformed HTML recovery):
-  {
-    message: string,
-    openedAt: number,   // 1-based line where the issue originated (tag/comment open)
-    detectedAt: number  // 1-based line where the issue was detected (often EOF for unclosed tags)
-  }
-
-  Policies:
-  - Whitespace in text nodes is preserved as written (including whitespace-only nodes between tags).
-  - Text node content normalizes line endings: \\r\\n and standalone \\r become \\n.
-  - Malformed HTML produces a best-effort tree; never throws.
-  - Entities are decoded in text nodes and attribute values, not in script, style, comments, or doctype.
-  - Entity references must include a trailing semicolon (e.g. &copy;, &#169;, &#xA9;).
-  - Warning line numbers treat \\r\\n and standalone \\r as line breaks.
-*/
 function decodeHtmlEntities(value) {
   const namedEntities = {
     amp: "&",

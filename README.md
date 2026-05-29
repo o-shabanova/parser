@@ -33,9 +33,58 @@ Before submitting your final results, double or even triple-check everything:
 - The best indicator that you’ve done your best is the feeling of confidence when submitting, knowing that you have thoroughly checked your work and cannot think of anything more to improve.
 - You can view test task template [here](https://jito-dev.github.io/jito-intern-test-task/)
 
-## Implementation contract
-html2json(htmlText) is a hand-written, character-by-character parser (no DOM APIs) that always returns a JSON AST rooted at { type: "document", children, warnings }. The tree uses four node kinds: element (with lowercase tag, attributes, and children), text, comment, and doctype. Malformed HTML is recovered best-effort: the function never throws, and structural problems are reported in warnings with 1-based openedAt / detectedAt line numbers.
 
-Text nodes preserve whitespace as written and normalize line endings (\r\n and \r → \n). HTML entities are decoded in text and attribute values (semicolon required), but stay literal inside script, style, comments, and doctype. Content inside script, style, textarea, and title is treated as raw text (with quote-aware closing-tag detection for script/style). Void and self-closing tags are supported; unclosed or mismatched tags produce warnings and an approximate tree rather than failing.
+## JSON schema (DOM-like AST)
+
+  Root — always a document node:
+  {
+    type: "document",
+    children: Node[],
+    warnings: Warning[]
+  }
+
+  Node types:
+
+  Element:
+  {
+    type: "element",
+    tag: string,          
+    attributes: { [name: string]: string | boolean },
+    children: Node[]
+  }
+
+  Text:
+  {
+    type: "text",
+    content: string           
+  }
+
+  Comment:
+  {
+    type: "comment",
+    content: string          
+  }
+
+  Doctype:
+  {
+    type: "doctype",
+    content: string
+  }
+
+  Warning (malformed HTML recovery):
+  {
+    message: string,
+    openedAt: number,   // 1-based line where the issue originated (tag/comment open)
+    detectedAt: number  // 1-based line where the issue was detected (often EOF for unclosed tags)
+  }
+
+## Policies:
+  - Whitespace in text nodes is preserved as written (including whitespace-only nodes between tags).
+  - Text node content normalizes line endings: \\r\\n and standalone \\r become \\n.
+  - Malformed HTML produces a best-effort tree; never throws.
+  - Entities are decoded in text nodes and attribute values, not in script, style, comments, or doctype.
+  - Entity references must include a trailing semicolon (e.g. &copy;, &#169;, &#xA9;).
+  - Warning line numbers treat \\r\\n and standalone \\r as line breaks.
+
 
 
