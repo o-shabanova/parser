@@ -2,3 +2,5 @@ Not used for this task.
 
 AI assistance was provided via Cursor IDE. I added transcription as pdf as required to ai_help directory. 
 But just in case .md format is more readable, I've added it also.
+Also there is a plan directory, where I put my implementation plan to easier track. 
+It's a part of general conversation with cursor, but just a plan in separate place.
