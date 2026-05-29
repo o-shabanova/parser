@@ -63,7 +63,12 @@ function html2json(htmlText) {
   }
   return {
     type: "document",
-    children: [],
+    children: [
+      {
+        type: "text",
+        content: "Hello!",
+      },
+    ],
   };
 }
 
