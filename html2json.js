@@ -58,9 +58,9 @@ function parseAttributes(attributesText) {
   const attributes = {};
 
   attributesText.replace(
-    /([a-zA-Z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)')/g,
-    (match, name, doubleQuotedValue, singleQuotedValue) => {
-      attributes[name] = doubleQuotedValue ?? singleQuotedValue;
+    /([a-zA-Z_:][\w:.-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g,
+    (match, name, doubleQuotedValue, singleQuotedValue, unquotedValue) => {
+      attributes[name] = doubleQuotedValue ?? singleQuotedValue ?? unquotedValue;
       return match;
     }
   );

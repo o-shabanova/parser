@@ -177,3 +177,22 @@ test("returns element with single quoted attributes", () => {
         ],
     });
 });
+
+test("returns element with unquoted attribute values", () => {
+    const result = html2json("<input type=text value=hello>");
+  
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "input",
+          attributes: {
+            type: "text",
+            value: "hello",
+          },
+          children: [],
+        },
+      ],
+    });
+  });
