@@ -62,6 +62,7 @@ function decodeHtmlEntities(value) {
     quot: "\"",
     apos: "'",
     nbsp: "\u00A0",
+    copy: "\u00A9",
   };
 
   return value.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z][\w]+);/g, (fullMatch, entityBody) => {
@@ -234,7 +235,7 @@ function parseHtml(htmlText) {
 
     textBuffer = "";
   };
-  
+
   while (index < htmlText.length) {
     if (htmlText[index] !== "<") {
       textBuffer += htmlText[index];

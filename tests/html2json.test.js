@@ -1076,5 +1076,24 @@ test("ignores whitespace-only formatting text nodes", () => {
     });
   });
   
+  test("decodes copy named entity in text", () => {
+    const result = html2json("<p>&copy; 2024 My Website</p>");
 
+    assert.deepEqual(result, {
+      type: "document",
+      children: [
+        {
+          type: "element",
+          tag: "p",
+          attributes: {},
+          children: [
+            {
+              type: "text",
+              content: "© 2024 My Website",
+            },
+          ],
+        },
+      ],
+    });
+  });
 
