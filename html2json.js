@@ -226,7 +226,7 @@ function parseHtml(htmlText) {
   let textBuffer = "";
 
   const flushTextBuffer = () => {
-    if (textBuffer.trim() !== "") {
+    if (textBuffer !== "") {
       stack[stack.length - 1].children.push({
         type: "text",
         content: decodeHtmlEntities(textBuffer),

@@ -1027,107 +1027,158 @@ test("decodes entities inside title content", () => {
     });
 });
 
-test("ignores whitespace-only formatting text nodes", () => {
+test("preserves whitespace-only formatting text nodes", () => {
     const result = html2json("<div>\n  <p>x</p>\n</div>");
 
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "div",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "element",
-              tag: "p",
-              attributes: {},
-              children: [
-                {
-                  type: "text",
-                  content: "x",
-                },
-              ],
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "\n  ",
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "x",
+                            },
+                        ],
+                    },
+                    {
+                        type: "text",
+                        content: "\n",
+                    },
+                ],
             },
-          ],
-        },
-      ],
+        ],
     });
-  });
+});
 
-  test("preserves leading and trailing spaces in text node", () => {
+test("preserves inter-element newline text node between siblings", () => {
+    const result = html2json("<div><p>One</p>\n<p>Two</p></div>");
+
+    assert.deepEqual(result, {
+        type: "document",
+        children: [
+            {
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "One",
+                            },
+                        ],
+                    },
+                    {
+                        type: "text",
+                        content: "\n",
+                    },
+                    {
+                        type: "element",
+                        tag: "p",
+                        attributes: {},
+                        children: [
+                            {
+                                type: "text",
+                                content: "Two",
+                            },
+                        ],
+                    },
+                ],
+            },
+        ],
+    });
+});
+
+test("preserves leading and trailing spaces in text node", () => {
     const result = html2json("<p>  hello  </p>");
 
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "p",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "text",
-              content: "  hello  ",
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "  hello  ",
+                    },
+                ],
             },
-          ],
-        },
-      ],
+        ],
     });
-  });
-  
-  test("decodes copy named entity in text", () => {
+});
+
+test("decodes copy named entity in text", () => {
     const result = html2json("<p>&copy; 2024 My Website</p>");
 
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "p",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "text",
-              content: "© 2024 My Website",
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "© 2024 My Website",
+                    },
+                ],
             },
-          ],
-        },
-      ],
+        ],
     });
-  });
+});
 
-  test("recovers stack by popping until matching closing tag", () => {
+test("recovers stack by popping until matching closing tag", () => {
     const result = html2json("<div><span></div><p>After</p>");
 
     assert.deepEqual(result, {
-      type: "document",
-      children: [
-        {
-          type: "element",
-          tag: "div",
-          attributes: {},
-          children: [
+        type: "document",
+        children: [
             {
-              type: "element",
-              tag: "span",
-              attributes: {},
-              children: [],
+                type: "element",
+                tag: "div",
+                attributes: {},
+                children: [
+                    {
+                        type: "element",
+                        tag: "span",
+                        attributes: {},
+                        children: [],
+                    },
+                ],
             },
-          ],
-        },
-        {
-          type: "element",
-          tag: "p",
-          attributes: {},
-          children: [
             {
-              type: "text",
-              content: "After",
+                type: "element",
+                tag: "p",
+                attributes: {},
+                children: [
+                    {
+                        type: "text",
+                        content: "After",
+                    },
+                ],
             },
-          ],
-        },
-      ],
+        ],
     });
-  });
+});
 
